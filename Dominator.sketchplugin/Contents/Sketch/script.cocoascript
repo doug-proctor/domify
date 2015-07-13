@@ -1,0 +1,197 @@
+@import '../Resources/sandbox.js'
+
+// MSClass -> HTML element mapping
+var classMap = {
+	"MSArtboardGroup": "body",
+	"MSLayerGroup": "div",
+	"MSShapeGroup": "div",
+	"MSRect": "div",
+	"MSTextLayer": "p",
+}
+
+function getTextAlignment(index) {
+	alignments = ['left', 'right', 'center', 'justify', 'left']
+	return alignments[index]
+}
+
+var nameMap = {
+	"threeE": "jksahfd dksajlhfgadljshfgkja kjdhasfg "
+}
+
+// Array to hold the DOM as we develop it
+var dom = {
+	"children": []
+}
+
+/*
+*
+* Kickoff
+*/
+
+var onRun = function(context) {
+	
+	var home_folder = "/Users/" + NSUserName()
+
+	new AppSandbox().authorize(home_folder, function() {
+		log("START________________________________________")
+		begin(context);
+	})
+};
+
+function begin(context) {
+
+	var doc = context.document
+	var top_layers = [[doc currentPage] layers]
+
+	buildDOM(top_layers, dom)
+}
+
+function buildDOM(layers, parent) {
+	
+	for (var i = 0; i < [layers length]; i++) {
+	
+		var layer = layers.objectAtIndex(i)
+
+		//
+		//
+		//
+		// Begin collecting CSS
+		css  = 'position: absolute;'
+		css += 'font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;'
+
+
+		// Text layers
+		// If its a text layer, grab its text string
+		var content = ''
+		if (layer.className() == "MSTextLayer") {
+			content = "" + layer.stringValue())
+			css += "text-align:" 		+ getTextAlignment(layer.textAlignment()) + ";"
+			css += "font-size:" 		+ [layer fontSize] + "px;"
+			css += "letter-spacing:" 	+ [layer characterSpacing] + "px;"
+			css += "line-height:" 		+ [layer lineSpacing] + "px;"
+			css += "color:" 			+ rgb2hex([layer textColor]) + ";"
+			//log("Alignment: " + getTextAlignment(layer.textAlignment()) + " for layer called " + [layer name])
+		}
+
+		// Border
+		var border = layer.style().borders().firstObject())		
+		if (border) { // need to exclude disabled borders too
+			var borderCSS = "border: " + border.thickness() + "px solid " + rgb2hex(border.color()) + ";"
+		}		
+
+		// lines
+		if (layer.className() == "MSShapeGroup") {
+			if ([[layer frame] rect].size.height == 2) {
+				var borderCSS = "border: none; border-bottom:" + border.thickness() + "px solid " + rgb2hex(border.color()) + ";"
+			}
+		}
+
+		if (borderCSS)
+			css += borderCSS
+
+
+		// Fill
+		var fill = layer.style().fills().firstObject()
+		if (fill != undefined && fill.isEnabled()) {
+			color = fill.color();
+			//log()
+			css += "background-color:" + rgb2hex(color) + ";"
+		}
+
+		// x y 
+		var coords = "left:" + [[layer frame] x] + "px;top:" + [[layer frame] y] + "px;"
+
+		// width
+		if (getNameFromLayer(layer) == "body") {
+			var width = "max-width:" + [[layer frame] width] + "px;"
+		} else {
+			var width = "width:" + [[layer frame] width] + "px;"
+		}
+
+		// height
+		var height = "height:" + [[layer frame] height] + "px;"
+
+		css += coords
+		css += width
+		css += height
+
+
+		var element = {
+			"css_class"	: getNameFromLayer(layer),
+			"type"		: classMap[[layer class]],
+			"content"	: content,
+			"css"		: css,
+			"children"	: []
+		}
+
+		if ([layer isVisible]) {
+			parent.children.push(element)
+		}
+
+		borderCSS = ''
+
+		if ([layer isMemberOfClass:[MSLayerGroup class]] || [layer isMemberOfClass:[MSArtboardGroup class]]) {
+			if ([layer isVisible]) {
+				buildDOM([layer layers], element)
+			}
+			//currentCount++
+		}
+	}
+
+	writeJSON()
+}
+
+function getNameFromLayer(layer) {
+	
+	if (layer.name() == "<body>") {
+		return "body"
+	}
+
+	// 🏆
+	// Hack of the day
+	// Prepend empty string to cast correctly
+	// If you know the correct way to do this pls let me know
+	return "" + [layer name]
+}
+
+
+/*
+*
+*
+*	Write the DOM tree to a JSON file
+*/
+
+function writeJSON() {
+
+	log("Writing file...")
+	
+	// Create JSON string
+	var jsonString = "var data = " + JSON.stringify(dom)
+	
+	// Convert to NSString
+	var data = NSString.stringWithString_(jsonString)
+	
+
+
+	// Write to file
+	filePath = "/Users/" + NSUserName() + "/Desktop/dom/data.js";
+	data.dataUsingEncoding_(NSUTF8StringEncoding).writeToFile_atomically_(filePath, true)
+
+}
+
+
+rgb2hex = function (c) {
+	function hex(x) {
+		return ("0" + parseInt(x, 10).toString(16)).slice(-2);
+	}
+	return "#" + hex(Math.round(c.red() * 255)) + hex(Math.round(c.green() * 255)) + hex(Math.round(c.blue() * 255));
+};
+
+// alert = function(msg) {
+// 	alert = [[NSAlert alloc] init]
+// 	[alert setMessageText:msg]
+// 	[alert addButtonWithTitle:'OK']
+// 	[alert addButtonWithTitle:'Cancel']
+// 	// [alert setAccessoryView:accessory]
+// 	var responseCode = [alert runModal]
+// } 

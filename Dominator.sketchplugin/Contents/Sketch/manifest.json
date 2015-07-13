@@ -1,0 +1,23 @@
+{
+  "author" : "Doug Proctor",
+  "commands" : [
+    {
+      "script" : "script.cocoascript",
+      "handler" : "onRun",
+      "shortcut" : "cmd alt p",
+      "name" : "Dominator",
+      "identifier" : "dominator"
+    }
+  ],
+  "menu" : {
+    "items" : [
+      "dominator"
+    ],
+    "title" : "Dominator"
+  },
+  "identifier" : "com.example.sketch.df3f8eb9-9f54-4a26-ac13-c1cd93f05369",
+  "version" : "1.0",
+  "description" : "",
+  "authorEmail" : "",
+  "name" : "Dominator"
+}
