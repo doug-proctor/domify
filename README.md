@@ -1,3 +1,3 @@
-## Sketch-to-HTML
+## Sketch to HTML
 
 Convert Sketch design documents into HTML
